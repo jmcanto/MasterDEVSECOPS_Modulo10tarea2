@@ -9,3 +9,9 @@ Inicialmente, había pensado en incluirlo todo en un mismo script, pero por simp
   <li>script comprobación para los usuarios del dominio si tienen habilitado el segundo factor de autentificación.</li>
 </ul>
 
+El escenario planteado existen 4 grupos de usuarios y la empresa ficticia en el momento cuenta con 20 trabajadores, que se repartirán equitativamente por los 4 grupos. Los grupos son los siguientes:
+- Dirección
+- Recursos Humanos
+- TI
+  - Desarrollo
+  - Sistemas  
