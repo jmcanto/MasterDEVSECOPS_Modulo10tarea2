@@ -1,17 +1,17 @@
 ﻿Import-Module ActiveDirectory
 
-$SecurePassword = ConvertTo-SecureString "P@ssw0rd07!" -AsPlainText -Force
+$SecurePassword = ConvertTo-SecureString "P@ssw0rd09!" -AsPlainText -Force
 
 $NewADUserParameters = @{
-    Name = "Dirección 03" 
-    GivenName = "Dirección 03" 
+    Name = "Dirección 04" 
+    GivenName = "Dirección 04" 
     Surname = ""
     Path = "CN=Users,DC=devsecops,DC=es"
-    SamAccountName = "direccion03"
-    UserPrincipalName = "direccion03@devsecops.es" 
+    SamAccountName = "direccion04"
+    UserPrincipalName = "direccion04@devsecops.es" 
     AccountPassword = $SecurePassword
     Enabled = $true 
-    Description = "Cuenta de usuario para Dirección 03"    
+    Description = "Cuenta de usuario para Dirección 04"    
 }
 
 $grupo = "Direccion"

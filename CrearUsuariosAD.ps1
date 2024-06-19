@@ -23,7 +23,8 @@ $csvPath = "C:\utilidades\nuevos_usuarios.csv"
 
 #leyendo los usuarios del fichero
 $Users = Import-Csv -Path $csvPath
-#si necesitamos ver los datos de
+
+# listando el fichero, para comprobar que los datos aparecen bien
 Write-Host "Usuarios importados desde el CSV:"
 $Users | Format-Table -Property FirstName,LastName,SamAccountName,UserPrincipalName,Path,Password,Description,Group
 
@@ -41,12 +42,12 @@ foreach ($User in $Users) {
     }
     try {
         #comprobar si existe el usuario
-        $creado = $(try {Get-ADUser $User.SamAccountName} catch {$null})
+        $creado = $(try {Get-AdUser -Filter {$SamAccountName -eq $User.SamAccountName}} catch {$null})
             
         if($creado -eq $null) {
              Write-Host "El usuario" $User.UserPrincipalName "no existe se debe crear" -ForegroundColor Magenta
 
-            $SecurePassword = ConvertTo-SecureString $User.Password -AsPlainText -Force
+            $SecurePassword = ConvertTo-SecureString $User.Password -AsPlainText -Force                              
 
             # Validar y ajustar los nombres
                 $nombre = $User.FirstName -replace "[^a-zA-Z0-9]", ""
@@ -54,35 +55,37 @@ foreach ($User in $Users) {
                 $nombreCuenta = $User.SamAccountName -replace "[^a-zA-Z0-9]", ""
                 $usuarioPrincipal = $User.UserPrincipalName -replace "[^a-zA-Z0-9@.]", ""
 
-            # Verificar si los campos SamAccountName y UserPrincipalName cumplen con los requisitos
+            # Verificar si los campos nombreCuenta y usuarioPrincipal cumplen con los requisitos
                 if ($nombreCuenta.Length -gt 20) {
-                    Write-Host "SamAccountName demasiado largo: $samAccountName" -ForegroundColor Red
+                    Write-Host "SamAccountName demasiado largo: $nombreCuenta" -ForegroundColor Red
                     continue
                 }
                 if ($usuarioPrincipal -notmatch "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$") {
-                    Write-Host "UserPrincipalName no válido: $userPrincipalName" -ForegroundColor Red
+                    Write-Host "UserPrincipalName no válido: $usuarioPrincipal" -ForegroundColor Red
                     continue
                 }
 
-                Write-Host "FirstName: $firstName"
-                Write-Host "LastName: $lastName"
-                Write-Host "SamAccountName: $samAccountName"
-                Write-Host "UserPrincipalName: $userPrincipalName"
+                Write-Host "Nombre: $nombre"
+                Write-Host "Apellido: $apellido"
+                Write-Host "Nombre Cuenta: $nombreCuenta"
+                Write-Host "Nombre Inicio Sesión: $usuarioPrincipal"
                 Write-Host "Path: $rutaOU"
-                Write-Host "Description: $($User.Description)"
-                Write-Host "Group: $($User.Group)"
+                Write-Host "Descripción: $($User.Description)"
+                Write-Host "Grupo: $($User.Group)"
 
             #creación del usuario
             $NewADUserParam = @{
                 Name = "$nombre $apellido"
-                GivenName = $nombre
-                Surname = $apellido
-                SamAccountName = $nombreCuenta
-                UserPrincipalName = $usuarioPrincipal
-                Path = $User.Path
-                AccountPassword = $SecurePassword 
-                Enabled = $true
-                Description = $User.Description
+                GivenName = "$nombre"
+                Surname = "$apellido"
+                SamAccountName = "$nombreCuenta"
+                UserPrincipalName = "$usuarioPrincipal"
+                Path = "$rutaOU"
+                AccountPassword = "$SecurePassword"
+                Description = "$($User.Description)"
+                Enabled = $true                
+                PasswordNeverExpires = $false
+                ChangePasswordAtLogon = $True
             }
             New-ADUser $NewADUserParam
                     
