@@ -75,17 +75,15 @@ foreach ($User in $Users) {
 
             #creación del usuario
             $NewADUserParam = @{
-                Name = "$nombre $apellido"
-                GivenName = "$nombre"
-                Surname = "$apellido"
-                SamAccountName = "$nombreCuenta"
-                UserPrincipalName = "$usuarioPrincipal"
-                Path = "$rutaOU"
-                AccountPassword = "$SecurePassword"
-                Description = "$($User.Description)"
-                Enabled = $true                
-                PasswordNeverExpires = $false
-                ChangePasswordAtLogon = $True
+                Name = "$nombre $apellido" 
+                GivenName = "$nombre" 
+                Surname = "$apellido" 
+                SamAccountName = "$nombreCuenta" 
+                UserPrincipalName = "$usuarioPrincipal" 
+                Path = "$rutaOU" 
+                AccountPassword = "$SecurePassword" 
+                Description = "$($User.Description)" 
+                Enabled = $true 
             }
             New-ADUser $NewADUserParam
                     

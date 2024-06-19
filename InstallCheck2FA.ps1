@@ -3,13 +3,15 @@
 # instalar algunos de estos servicios o crear controladores de dominio.
 # Atención para la correcta ejecución del script se necesitan permisos de administrador
 #
+
+param([string]$instalarDC, [string]$instalarAD, [string]$instalarFS)
+
 #variables a usar
 $nombreDominio = "devsecops.es"
 $nombreaMostrar = "Master DEVSECOPS"
 #obtener nombre del equipo donde se está ejecutando el script
 $nombreEquipo = (Get-ComputerInfo).CSName #Get-ComputerInfo -Property CSName
-
-param([string]$instalarDC, [string]$instalarAD, [string]$instalarFS)
+$nombreADFS = "adfs.$nombreDominio"
 
 #Comprobar que el servicio de dominio está activo "Servicios de dominio de Active Directory"
 try
@@ -29,7 +31,9 @@ try
             if ($instalarDC -eq "si" -or $instalarDC -eq "s")
             {
                 Write-Host "Asignar al equipo el papel de controlador de dominio de solo lectura"
-                Install-ADDSDomainController -DomainName $nombreDominio -ReplicationSourceDC $controladorDominio.Name -Credential (Get-Credential)
+                Install-ADDSDomainController -DomainName $nombreDominio `
+                 -ReplicationSourceDC $controladorDominio.Name `
+                 -Credential (Get-Credential)
                 Restart-Computer -Force -Verbose
             }
         }
@@ -53,7 +57,12 @@ try
                 Install-WindowsFeature ADCS-Cert-Authority -IncludeManagementTools
 
                 # Configurar AD CS como una CA Raíz de Empresa
-                Install-AdcsCertificationAuthority -CAType EnterpriseRootCA -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" -KeyLength 2048 -HashAlgorithmName SHA512 -ValidityPeriod Years -ValidityPeriodUnits 5
+                Install-AdcsCertificationAuthority -CAType EnterpriseRootCA `
+                 -CryptoProviderName "RSA#Microsoft Software Key Storage Provider" `
+                 -KeyLength 2048 `
+                 -HashAlgorithmName SHA512 `
+                 -ValidityPeriod Years `
+                 -ValidityPeriodUnits 5
 
                 Write-Output "Servicios de certificación de Active Directory se ha instalado en $nombreEquipo y configurado correctamente." -ForegroundColor Green 
             }
@@ -71,7 +80,7 @@ try
 
                 # Generar un certificado SSL autofirmado
                 # "Cert:\LocalMachine\My" es la localización por defecto para los certificados
-                $nombreADFS="adfs.$nombreDominio"
+                
                 $certificado = New-SelfSignedCertificate -DnsName $nombreADFS -CertStoreLocation "Cert:\LocalMachine\My"
 
                 # Obtener la huella digital de dicho certificado creado
@@ -81,16 +90,25 @@ try
                 $serviceAccount = Get-Credential -Message "Introduce las credenciales de la cuenta de servicio para AD FS" -ForegroundColor Yellow
 
                 # Instalar y configurar AD FS con la huella digital obtenida
-                Install-AdfsFarm -CertificateThumbprint $huellaCert -FederationServiceDisplayName $nombreaMostrar -FederationServiceName $nombreADFS -ServiceAccountCredential $serviceAccount
+                Install-AdfsFarm -CertificateThumbprint $huellaCert `
+                 -FederationServiceDisplayName $nombreaMostrar `
+                 -FederationServiceName $nombreADFS `
+                 -ServiceAccountCredential $serviceAccount
  
                 Write-Output "AD FS se ha instalado y configurado correctamente en $nombreEquipo." -ForegroundColor Green
             }
         }
+
+        # Parte de Azure
+
+
     }
     elseif ($servicioAD.Status -eq "Stopped")
     {
         Write-Host "Arrancando el servicio" -ForegroundColor DarkGreen
+
         Start-Service -Name NTDS
+
         Write-Host "Servicio" $servicioAD.DisplayName "Arrancado" -ForegroundColor Green
         Write-Host "Ejecute de nuevo el este script"
     }
@@ -100,10 +118,17 @@ try
         if($instalarAD -eq "si" -or $instalarAD -eq "s")
         {
             Write-Host "Instalar Directorio Activo" -ForegroundColor Green
-            Add-WindowsFeature -name AD-Domain-Services, DNS, -IncludeAllSubFeature -IncludeManagementTools -Restart
+
+            Add-WindowsFeature -name AD-Domain-Services, DNS `
+             -IncludeAllSubFeature -IncludeManagementTools -Restart
         
             Write-Host "Instalando Controlador de Dominio"
-            Install-ADDSDomainController -DomainName $nombreDominio -InstallDNS -CreateDNSDelegation -Credential (Get-Credential) 
+
+            Install-ADDSDomainController -DomainName $nombreDominio `
+             -InstallDNS `
+             -CreateDNSDelegation `
+             -Credential (Get-Credential) 
+
             Write-Host "Reiniciando servidor" -ForegroundColor Red
             Write-Host "Ejecute de nuevo el este script tras reinicio"
             Restart-Computer -Force -Verbose        
