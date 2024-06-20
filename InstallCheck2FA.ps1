@@ -81,7 +81,9 @@ try
                 # Generar un certificado SSL autofirmado
                 # "Cert:\LocalMachine\My" es la localización por defecto para los certificados
                 
-                $certificado = New-SelfSignedCertificate -DnsName $nombreADFS -CertStoreLocation "Cert:\LocalMachine\My"
+                $certificado = New-SelfSignedCertificate `
+                 -DnsName $nombreADFS `
+                 -CertStoreLocation "Cert:\LocalMachine\My"
 
                 # Obtener la huella digital de dicho certificado creado
                 $huellaCert = $certificado.Thumbprint
@@ -89,7 +91,8 @@ try
                 # Pedir credenciales para la cuenta de servicio de AD FS
                 $serviceAccount = Get-Credential -Message "Introduce las credenciales de la cuenta de servicio para AD FS" -ForegroundColor Yellow
 
-                # Instalar y configurar AD FS con la huella digital obtenida
+                
+                # Crea el 1º nodo de la granja de servidores ADFS
                 Install-AdfsFarm -CertificateThumbprint $huellaCert `
                  -FederationServiceDisplayName $nombreaMostrar `
                  -FederationServiceName $nombreADFS `
@@ -101,6 +104,44 @@ try
 
         # Parte de Azure
 
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+        # Instalación del Modulo Graph que sustituye a MSOnline obsoleto desde Marzo
+        Install-Module Microsoft.Graph -Scope CurrentUser -Force
+
+        Connect-MgGraph -Scopes "User.Read.All", "Directory.ReadWrite.All"
+
+        # Configurar la federación
+        $aadfederationConfiguration = @{
+            '@odata.type' = "microsoft.graph.internalDomainFederation";
+            displayName = $domino;
+            domainName = $dominio;
+            issuerUri = "https://$nombreADFS/adfs/services/trust";
+            passiveSignInUri = "https://$nombreADFS/adfs/ls";
+            activeSignInUri = "https://$nombreADFS/adfs/services/trust/2005/usernamemixed";
+            signOutUri = "https://$nombreADFS/adfs/ls/?wa=wsignout1.0";
+            signInUri = "https://$nombreADFS/adfs/ls";
+            metadataExchangeUri = "https://$nombreADFS/adfs/services/trust/mex";
+            preferredAuthenticationProtocol = "WsFed";
+            isSignedAuthenticationRequestRequired = $false;
+            logOffUri = "https://$nombreADFS/adfs/ls/?wa=wsignout1.0";
+            supportMultipleDomain = $true;
+        }
+
+        $idDominio = (Get-MgDomain -Filter "id eq '$nombreDominio'").id
+
+        # Convertir el dominio a federado
+        Invoke-MgGraphRequest -Method PATCH -Uri "/domains/$idDominio" -Body ($aadfederationConfiguration | ConvertTo-Json -Depth 10)
+
+        Write-Output "La verificación e instalación de AD CS y AD FS se ha completado. Ahora configura MFA en Azure AD."
+
+        Write-Output "Pasos manuales:"
+        Write-Output "1. Ve al portal de Azure: https://portal.azure.com/"
+        Write-Output "2. Navega a Azure Active Directory > Security > MFA para habilitar MFA."
+        Write-Output "3. Configura las políticas de acceso condicional en Azure Active Directory > Conditional Access."
+
+        # Desconexión de Graph
+        Disconnect-MgGraph
 
     }
     elseif ($servicioAD.Status -eq "Stopped")
