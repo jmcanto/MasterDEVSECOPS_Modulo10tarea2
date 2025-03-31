@@ -9,7 +9,7 @@ try
     if ($interfazActiva) {
         $nombreInterfaz = $interfazActiva.Name
         $indiceInterfaz = $interfazActiva.InterfaceIndex
-       -InterfaceAlias $nombreInterfaz  Write-Output "Interfaz activa detectada: $nombreInterfaz"
+        Write-Output "Interfaz activa detectada: $nombreInterfaz"
 
 
         # Obtener las direcciones DNS actuales de la interfaz -InterfaceAlias $nombreInterfaz 
